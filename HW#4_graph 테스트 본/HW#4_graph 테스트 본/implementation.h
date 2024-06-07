@@ -155,15 +155,23 @@ bool insert_edge(Graph* graph, int v1, int v2, double cost) {
 		return false;
 
 	/* ==================== FILL YOUR CODE ==================== */
-	// 과제 설명 내 무방향 그래프로 진행
 	
-	// 인접 리스트에 엣지 추가
-	insert_ordered_list(&(graph->adj_list[v1]), v2, cost);
-	insert_ordered_list(&(graph->adj_list[v2]), v1, cost);
-
-	// 인접 행렬에 엣지 추가
-	graph->adj_mat[v1][v2] = cost;
-	graph->adj_mat[v2][v1] = cost;
+	
+	// 방향 그래프인지 여부에 따라 다르게 처리
+	if (graph->is_directed) {
+		// 방향 그래프의 경우, 단방향 엣지 추가
+		insert_ordered_list(&(graph->adj_list[v1]), v2, cost);
+		graph->adj_mat[v1][v2] = cost;
+	}
+	else {
+		// 무방향 그래프의 경우, 양방향 엣지 추가
+		// 인접 리스트에 엣지 추가
+		insert_ordered_list(&(graph->adj_list[v1]), v2, cost);
+		insert_ordered_list(&(graph->adj_list[v2]), v1, cost);
+		// 인접 행렬에 엣지 추가
+		graph->adj_mat[v1][v2] = cost;
+		graph->adj_mat[v2][v1] = cost;
+	}
 
 	/* ================= YOUR CODE ENDS HERE ================== */
 }
@@ -324,8 +332,14 @@ void DFS_recursive(Graph* graph, int node, bool visited[]) {
 	*/
 
 	/* ==================== FILL YOUR CODE ==================== */
-
-
+	visit(node);
+	visited[node] = true;
+	
+	for (GraphPointer curr = graph->adj_list[node]; curr != NULL; curr = curr->link) {
+		if (!visited[curr->node]) {
+			DFS_recursive(graph, curr->node, visited);
+		}
+	}
 
 	/* ================= YOUR CODE ENDS HERE ================== */
 
@@ -354,9 +368,23 @@ void BFS(Graph* graph, int start_node) {
 	init_queue(&queue);
 
 	/* ==================== FILL YOUR CODE ==================== */
+	enqueue(&queue, start_node);
+	visited[start_node] = true;
+	visit(start_node);
 
+	//queue안의 front 랑 rear가 지칭하는게 같다면 = 비어있다면
+	while (queue.front != queue.rear) {
+		int current = dequeue(&queue);
 
-
+		//adj_list에서 다음 노드 null이 될 때까지 앞으로 이동
+		for (GraphPointer next_node = graph->adj_list[current]; next_node != NULL; next_node = next_node->link) {
+			if (!visited[next_node->node]) {
+				enqueue(&queue, next_node->node);
+				visited[next_node->node] = true;
+				visit(next_node->node);
+			}
+		}
+	}
 	/* ================= YOUR CODE ENDS HERE ================== */
 
 }
@@ -419,6 +447,34 @@ PathInfo dijkstra(Graph* graph, int start, int end) {
 
 	/* ==================== FILL YOUR CODE ==================== */
 
+	//최소 거리 노드를 선택하기
+	for (int i = 0; i < MAX_NODE - 1; i++) {
+		//최소 dist, node 변수 선언 
+		double min_dist = INF;
+		int min_node = -1;
+		//!visit (방문 안했고) dist < min_dist (현재 최소 거리보다 짧다면) 업데이트
+		for (int j = 0; j < MAX_NODE; j++) {
+			if (!visited[j] && dist[j] < min_dist) {
+				min_dist = dist[j];
+				min_node = j;
+			}
+		}
+		//더 이상 방문할 노드가 없을 때 = for 안에 if문으로 못들어간 경우
+		if (min_node == -1) break;
+		visited[min_node] = true;
+
+		//인접 노드 거리 업데이트
+		for (int j = 0; j < MAX_NODE; j++) {
+			// j 노드를 방문한 적 없었어야 하며, 최소 -> j 노드까지 간선이 있긴 해야함
+			if (!visited[j] && graph->adj_mat[min_node][j] != INF) {
+				double new_dist = dist[min_node] + graph->adj_mat[min_node][j];
+				if (new_dist < dist[j]) {
+					dist[j] = new_dist;
+					pred[j] = min_node;
+				}
+			}
+		}
+	}
 
 
 	/* ================= YOUR CODE ENDS HERE ================== */
